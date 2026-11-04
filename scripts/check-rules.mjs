@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { sellers, bonus, standings } from '../app/rules.ts';
+assert.equal(sellers.reduce((n,s)=>n+s.goal,0),110);
+for(const [count,value] of [[0,0],[31,0],[32,0],[39,0],[40,500],[44,500],[45,600],[49,600],[50,700],[70,700]])assert.equal(bonus('edioneide',count),value);
+for(const id of ['daiara','sabrina','larissa'])for(const [count,value] of [[0,0],[4,0],[5,200],[9,200],[10,500],[20,500]])assert.equal(bonus(id,count),value);
+assert.equal(bonus('netinho',50),0);
+assert.ok(standings([]).every(s=>s.rank===null));
+const sample=[{seller:'netinho',quantity:10},{seller:'daiara',quantity:10},{seller:'edioneide',quantity:5}];
+const list=standings(sample);
+assert.equal(list.find(s=>s.id==='netinho').rank,1);
+assert.equal(list.find(s=>s.id==='daiara').rank,1);
+assert.equal(list.find(s=>s.id==='edioneide').rank,3);
+const unbalanced=standings([{seller:'edioneide',quantity:110}]);
+assert.equal(unbalanced.reduce((n,s)=>n+s.count,0),110);
+assert.equal(unbalanced.filter(s=>s.count>=s.goal).length,1);
+console.log('Regras verificadas: metas, limites de bônus, empates e condição coletiva.');
