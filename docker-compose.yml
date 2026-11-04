@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      # Local only. Exposing this beyond the machine requires an HTTPS reverse proxy.
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - newpay-data:/app/.wrangler/state
+
+volumes:
+  newpay-data:

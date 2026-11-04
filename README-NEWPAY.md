@@ -8,7 +8,7 @@ As cinco metas somam 110 máquinas. A surpresa exige que todos atinjam suas meta
 
 ## Acesso
 
-Publicação inicial privada, protegida pelo login da plataforma Sites. Administração depende dessa barreira privada e exige identidade nas gravações. Antes de abrir a campanha ao público ou a vendedores, configurar autorização separada de administrador no servidor; não alterar o público do site sem essa etapa.
+`/admin` e as gravações de vendas exigem login de administrador com e-mail e senha, verificado no servidor. Administradores são criados em `/admin/setup` com um código de uso único gerado por `npm run admin:code:publish`. Na prévia local, use `npm run admin:code:local`. Detalhes em [README.md](README.md#acesso).
 
 ## Desenvolvimento
 

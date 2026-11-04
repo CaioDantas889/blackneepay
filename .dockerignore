@@ -1,0 +1,13 @@
+.git
+.claude
+node_modules
+dist
+.next
+.vinext
+.wrangler
+.sites-runtime
+.env*
+.dev.vars*
+*.pem
+outputs
+work

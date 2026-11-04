@@ -8,6 +8,13 @@
       "when": 1793812051273,
       "tag": "0000_mysterious_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793815527927,
+      "tag": "0001_nebulous_snowbird",
+      "breakpoints": true
     }
   ]
 }
