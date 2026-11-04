@@ -11,6 +11,3 @@ export const adminSessions = sqliteTable('admin_sessions', {
 export const adminLoginAttempts = sqliteTable('admin_login_attempts', {
  key: text('key').primaryKey(), failures: integer('failures').notNull(), resetAt: integer('reset_at').notNull(),
 });
-export const adminSetupCodes = sqliteTable('admin_setup_codes', {
- codeHash: text('code_hash').primaryKey(),
-});

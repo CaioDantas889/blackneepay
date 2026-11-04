@@ -8,7 +8,7 @@ As cinco metas somam 110 máquinas. A surpresa exige que todos atinjam suas meta
 
 ## Acesso
 
-`/admin` e as gravações de vendas exigem login de administrador com e-mail e senha, verificado no servidor. Administradores são criados em `/admin/setup` com um código de uso único gerado por `npm run admin:code:publish`. Na prévia local, use `npm run admin:code:local`. Detalhes em [README.md](README.md#acesso).
+`/admin` e as gravações de vendas exigem login de administrador com e-mail e senha, verificado no servidor. O acesso é `admin@gmail.com` e a senha pode ser trocada em `/admin/senha`, com no mínimo 8 caracteres. Detalhes em [README.md](README.md#acesso).
 
 ## Desenvolvimento
 

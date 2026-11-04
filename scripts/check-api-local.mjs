@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 const base=process.env.BASE_URL??'http://127.0.0.1:5173';
 const {ADMIN_EMAIL:email,ADMIN_PASSWORD:password}=process.env;
-assert.ok(email&&password,'Defina ADMIN_EMAIL e ADMIN_PASSWORD com um administrador local criado em /admin/setup.');
+assert.ok(email&&password,'Defina ADMIN_EMAIL e ADMIN_PASSWORD com o administrador local.');
 const post=(path,body,headers={})=>fetch(base+path,{method:'POST',redirect:'manual',headers:{origin:base,'content-type':'application/json',...headers},body:JSON.stringify(body)});
 const adminPage=(cookie='')=>fetch(base+'/admin',{redirect:'manual',headers:{cookie}});
 const assertRedirectsToLogin=(response)=>{assert.ok(response.status>=300&&response.status<400,`esperava redirecionamento, recebeu ${response.status}`);assert.equal(new URL(response.headers.get('location'),base).pathname,'/admin/login');};
@@ -25,17 +25,15 @@ const target=`bloqueio-${crypto.randomUUID()}@sites.test`;
 for(let i=0;i<5;i++)assert.equal((await post('/api/admin/login',{email:target,password:'senha-incorreta-123'})).status,401);
 assert.equal((await post('/api/admin/login',{email:target,password:'senha-incorreta-123'})).status,429);
 
-// O código de configuração é exigido e validado.
-assert.equal((await post('/api/admin/setup',{code:'codigo-invalido',email:'novo@sites.test',password:'uma-senha-bem-longa'})).status,403);
-assert.equal((await post('/api/admin/setup',{code:'codigo-invalido',email:'novo@sites.test',password:'curta'})).status,400);
-assert.equal((await post('/api/admin/login',{email:'novo@sites.test',password:'uma-senha-bem-longa'})).status,401);
+// A tela de configuração por código não existe mais.
+assert.equal((await fetch(base+'/admin/setup')).status,404);
 
 // Credenciais válidas abrem a administração.
 const login=await post('/api/admin/login',{email:` ${email.toUpperCase()} `,password});
 assert.equal(login.status,200);
 const setCookie=login.headers.get('set-cookie');
 assert.match(setCookie,/HttpOnly/);assert.match(setCookie,/SameSite=Lax/);
-const cookie=setCookie.split(';')[0];
+let cookie=setCookie.split(';')[0];
 assert.equal((await adminPage(cookie)).status,200);
 const headers={origin:base,cookie,'content-type':'application/json'};
 
@@ -63,8 +61,37 @@ try {
 }
 assert.ok(!(await (await fetch(base+'/api/sales')).json()).some(s=>s.id===id));
 
+// Trocar a senha exige sessão, a senha atual correta e o mínimo de 8 caracteres.
+const changePassword=(currentPassword,newPassword,session,extra={})=>post('/api/admin/password',{currentPassword,newPassword},{cookie:session,...extra});
+const temporary='12345678';
+assertRedirectsToLogin(await fetch(base+'/admin/senha',{redirect:'manual'}));
+assert.equal((await fetch(base+'/admin/senha',{headers:{cookie}})).status,200);
+assert.equal((await changePassword(password,temporary,'')).status,401);
+assert.equal((await changePassword(password,temporary,cookie,{origin:'https://other.test'})).status,403);
+assert.equal((await changePassword('senha-incorreta-123',temporary,cookie)).status,403);
+assert.equal((await changePassword(password,'1234567',cookie)).status,400);
+assert.equal((await changePassword(password,password,cookie)).status,400);
+const otherDevice=(await post('/api/admin/login',{email,password})).headers.get('set-cookie').split(';')[0];
+const changed=await changePassword(password,temporary,cookie);
+assert.equal(changed.status,200);
+const previous=cookie;
+cookie=changed.headers.get('set-cookie').split(';')[0];
+try {
+ assert.equal((await adminPage(cookie)).status,200);
+ assertRedirectsToLogin(await adminPage(previous));
+ assertRedirectsToLogin(await adminPage(otherDevice));
+ assert.equal((await post('/api/admin/login',{email,password})).status,401);
+ assert.equal((await post('/api/admin/login',{email,password:temporary})).status,200);
+} finally {
+ const restored=await changePassword(temporary,password,cookie);
+ assert.equal(restored.status,200);
+ cookie=restored.headers.get('set-cookie').split(';')[0];
+}
+assert.equal((await post('/api/admin/login',{email,password})).status,200);
+assert.equal((await post('/api/admin/login',{email,password:temporary})).status,401);
+
 // Sair invalida a sessão no servidor, mesmo que o cookie antigo seja reenviado.
 assert.equal((await post('/api/admin/logout',undefined,{cookie})).status,200);
 assertRedirectsToLogin(await adminPage(cookie));
 assert.equal((await post('/api/sales',{...sample,id:crypto.randomUUID()},{cookie})).status,401);
-console.log('API local verificada: login, bloqueio de tentativas, proteção da página, sessão, persistência, idempotência, validação, origem, exclusão e saída.');
+console.log('API local verificada: login, bloqueio de tentativas, proteção da página, sessão, troca de senha, persistência, idempotência, validação, origem, exclusão e saída.');

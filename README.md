@@ -10,11 +10,9 @@ As cinco metas somam 110 máquinas. A surpresa exige que todos atinjam suas meta
 
 `/admin` e as gravações de vendas exigem login de administrador com e-mail e senha, verificado no servidor. Sem sessão válida, `/admin` redireciona para `/admin/login`. Credenciais incorretas mostram erro e não liberam acesso. A sessão dura 8 horas e cinco tentativas erradas bloqueiam o par e-mail/IP por 15 minutos. A leitura pública de vendas não inclui as observações.
 
-As senhas ficam só no D1, como hash PBKDF2. Como este repositório é público, nenhuma credencial é versionada. Administradores são criados em `/admin/setup` com um código de uso único, que também serve para trocar a senha:
+O acesso é `admin@gmail.com`, criado pela migração `drizzle/0003_seed_admin.sql`. Como este repositório é público, ela contém só o hash PBKDF2 de uma senha inicial longa e aleatória; a senha em si nunca é versionada. Depois de entrar, troque-a em `/admin/senha`, com no mínimo 8 caracteres. A troca encerra as sessões de outros dispositivos.
 
-1. `npm run admin:code:publish` gera o código e uma migração contendo só o hash dele. Sem Node.js na máquina, use `docker compose run --rm -v "${PWD}/drizzle:/app/drizzle" app npm run admin:code:publish`. Na prévia local, use `npm run admin:code:local`.
-2. Faça commit da migração e publique. O código aparece uma única vez no terminal e não deve ser versionado.
-3. Abra `/admin/setup` e informe o código, o e-mail e a senha, com no mínimo 12 caracteres.
+Não há recuperação de senha pela interface. Para redefinir uma senha perdida, é preciso atualizar o hash em `admin_users` com uma nova migração.
 
 ## Desenvolvimento
 
@@ -26,10 +24,9 @@ Use esta opção quando a prévia não iniciar no Windows com um erro de "access
 
 ```sh
 docker compose up -d --build
-docker compose exec app npm run admin:code:local
 ```
 
-Abra `http://localhost:8787/admin/setup` e crie o administrador com o código exibido no terminal. As migrações são aplicadas a cada início do contêiner. Os dados ficam no volume `newpay-data`: `docker compose down` os preserva e `docker compose down -v` os apaga. Depois de alterar o código, rode `docker compose up -d --build` de novo.
+Abra `http://localhost:8787/admin` e entre com o administrador. As migrações são aplicadas a cada início do contêiner. Os dados ficam no volume `newpay-data`: `docker compose down` os preserva e `docker compose down -v` os apaga. Depois de alterar o código, rode `docker compose up -d --build` de novo.
 
 O contêiner serve o build de produção pelo `wrangler dev`, com D1 local, e só aceita conexões da própria máquina. Ele não substitui a hospedagem: para expô-lo na rede seria preciso um proxy reverso com HTTPS e ajustar a verificação de origem.
 
@@ -46,18 +43,19 @@ npm ci
 npm run build
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_mysterious_korvac.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_nebulous_snowbird.sql
-npm run admin:code:local
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0002_remove_setup_codes.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0003_seed_admin.sql
 npm run dev
 ```
 
-A prévia abre em `http://127.0.0.1:5173`. Para criar o administrador local, abra `/admin/setup` e use o código exibido no terminal.
+A prévia abre em `http://127.0.0.1:5173`. A administração fica em `/admin`.
 
 ```sh
 node scripts/check-rules.mjs
 ADMIN_EMAIL=... ADMIN_PASSWORD=... node scripts/check-api-local.mjs
 ```
 
-O segundo teste exige a prévia local em execução e um administrador local. Ele cria e remove somente seu próprio registro descartável.
+O segundo teste exige a prévia local em execução e a senha do administrador local. Ele cria e remove somente seu próprio registro descartável, e troca a senha temporariamente, restaurando-a no final.
 
 O repositório contém código e migrações de estrutura. Dados de vendas, credenciais, dependências e arquivos gerados ficam fora do versionamento.
 

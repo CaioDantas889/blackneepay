@@ -1,7 +1,7 @@
-import { and, eq, gt, lte } from "drizzle-orm";
+import { and, eq, gt, lte, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { getDb } from "@/db";
-import { adminSessions, adminUsers } from "@/db/schema";
+import { adminLoginAttempts, adminSessions, adminUsers } from "@/db/schema";
 
 const SESSION_COOKIE = "newpay_admin_session";
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
@@ -12,8 +12,12 @@ const PASSWORD_HASH_SCHEME = "pbkdf2-sha256";
 
 /** Verified when the e-mail is unknown, so response time does not reveal which e-mails exist. */
 export const DUMMY_PASSWORD_HASH = `${PASSWORD_HASH_SCHEME}$${PBKDF2_ITERATIONS}$${"00".repeat(16)}$${"00".repeat(32)}`;
-export const MIN_PASSWORD_LENGTH = 12;
+export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 256;
+export const TOO_MANY_ATTEMPTS = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+
+const MAX_ATTEMPTS = 5;
+const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 
 const toHex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -63,6 +67,31 @@ export async function verifyPassword(password: string, stored: string): Promise<
 }
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+/**
+ * Counts a password attempt per e-mail and IP before it is verified, so parallel
+ * requests cannot slip past the limit. retryAfterSeconds is 0 while attempts remain.
+ */
+export async function registerPasswordAttempt(req: Request, email: string) {
+  const db = getDb();
+  const now = Date.now();
+  await db.delete(adminLoginAttempts).where(lte(adminLoginAttempts.resetAt, now));
+  const key = await sha256Hex(`${email}|${req.headers.get("cf-connecting-ip") ?? "local"}`);
+  const [attempt] = await db
+    .insert(adminLoginAttempts)
+    .values({ key, failures: 1, resetAt: now + ATTEMPT_WINDOW_MS })
+    .onConflictDoUpdate({
+      target: adminLoginAttempts.key,
+      set: { failures: sql`${adminLoginAttempts.failures} + 1` },
+    })
+    .returning({ failures: adminLoginAttempts.failures, resetAt: adminLoginAttempts.resetAt });
+  const limited = attempt.failures > MAX_ATTEMPTS;
+  return { key, retryAfterSeconds: limited ? Math.ceil((attempt.resetAt - now) / 1000) : 0 };
+}
+
+export async function clearPasswordAttempts(key: string): Promise<void> {
+  await getDb().delete(adminLoginAttempts).where(eq(adminLoginAttempts.key, key));
+}
 
 export function isSameOrigin(req: Request): boolean {
   return req.headers.get("origin") === new URL(req.url).origin;

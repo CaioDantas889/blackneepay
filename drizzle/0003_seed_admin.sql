@@ -1,0 +1,1 @@
+INSERT INTO admin_users (id, email, password_hash, created_at) VALUES ('f20592b8-7ce2-4235-b4ab-dbdd480b5e0f', 'admin@gmail.com', 'pbkdf2-sha256$100000$2b1f5f75acaf56a9e957aa48943522ff$220a76e24725cf008445c3f606815347328de53df3a73f6957825949eccedff2', '2026-11-04T18:57:18.258Z') ON CONFLICT(email) DO NOTHING;

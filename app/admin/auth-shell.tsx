@@ -1,4 +1,4 @@
-import Link from "next/link";
+/* eslint-disable @next/next/no-html-link-for-pages -- next/link throws on click in vinext 1.0.0-beta.5, so plain links are used. */
 import { ArrowUpRight } from "lucide-react";
 
 export function AuthShell({
@@ -13,15 +13,15 @@ export function AuthShell({
   return (
     <div>
       <header>
-        <Link href="/" className="brand" aria-label="NewPay início">
+        <a href="/" className="brand" aria-label="NewPay início">
           <span className="brand-symbol">n</span>new<span>pay</span>
           <span className="brand-divider" />
           <small>BLACK FRIDAY ’26</small>
-        </Link>
-        <Link className="admin-link" href="/">
+        </a>
+        <a className="admin-link" href="/">
           <ArrowUpRight size={15} />
           <span>Ver campanha</span>
-        </Link>
+        </a>
       </header>
       <main className="auth-page">
         <section className="form-panel auth-panel">

@@ -5,6 +5,8 @@
 @media(max-width:760px){.hero h1{font-size:clamp(48px,14.5vw,66px);letter-spacing:-3px}.hero-actions{flex-wrap:wrap}.rank-person>div:last-child{min-width:0}.starting-line>div:nth-child(2){min-width:0}}
 .table-wrap{position:relative}
 .admin-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.admin-actions a.secondary{display:inline-flex;align-items:center;gap:9px}
+.auth-back{display:flex;justify-content:center;margin-top:18px}
 .auth-page{min-height:calc(100vh - 87px);display:grid;place-items:center;padding-top:48px;padding-bottom:48px}
 .auth-panel{width:100%;max-width:440px}
 .auth-panel h1{font-size:34px;font-weight:550;letter-spacing:-1.2px;margin:14px 0 6px}
