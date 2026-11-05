@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { and, eq, gt, lte, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { getDb } from "@/db";
@@ -68,6 +69,19 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+/** Behind a TLS-terminating proxy the Worker sees plain HTTP, so PUBLIC_ORIGIN states the address visitors use. */
+const publicOrigin = (req: Request) => env.PUBLIC_ORIGIN || new URL(req.url).origin;
+
+/**
+ * The reverse proxy appends the address it saw to X-Forwarded-For, so only the last entry
+ * can be trusted: the earlier entries and X-Real-Ip can be sent by the visitor, which
+ * would bypass the attempt limit. Used only when PUBLIC_ORIGIN says a proxy is in front.
+ */
+const clientIp = (req: Request) =>
+  (env.PUBLIC_ORIGIN && req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()) ||
+  req.headers.get("cf-connecting-ip") ||
+  "local";
+
 /**
  * Counts a password attempt per e-mail and IP before it is verified, so parallel
  * requests cannot slip past the limit. retryAfterSeconds is 0 while attempts remain.
@@ -76,7 +90,7 @@ export async function registerPasswordAttempt(req: Request, email: string) {
   const db = getDb();
   const now = Date.now();
   await db.delete(adminLoginAttempts).where(lte(adminLoginAttempts.resetAt, now));
-  const key = await sha256Hex(`${email}|${req.headers.get("cf-connecting-ip") ?? "local"}`);
+  const key = await sha256Hex(`${email}|${clientIp(req)}`);
   const [attempt] = await db
     .insert(adminLoginAttempts)
     .values({ key, failures: 1, resetAt: now + ATTEMPT_WINDOW_MS })
@@ -94,7 +108,7 @@ export async function clearPasswordAttempts(key: string): Promise<void> {
 }
 
 export function isSameOrigin(req: Request): boolean {
-  return req.headers.get("origin") === new URL(req.url).origin;
+  return req.headers.get("origin") === publicOrigin(req);
 }
 
 /**
@@ -115,7 +129,7 @@ export async function readJsonObject(req: Request): Promise<Record<string, unkno
 
 function sessionCookie(req: Request, value: string, maxAgeSeconds: number): string {
   // Local previews run over plain HTTP, where a Secure cookie would be discarded.
-  const secure = new URL(req.url).protocol === "https:" ? "; Secure" : "";
+  const secure = publicOrigin(req).startsWith("https:") ? "; Secure" : "";
   return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure}`;
 }
 

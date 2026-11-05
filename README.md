@@ -28,11 +28,17 @@ docker compose up -d --build
 
 Abra `http://localhost:8787/admin` e entre com o administrador. As migrações são aplicadas a cada início do contêiner. Os dados ficam no volume `newpay-data`: `docker compose down` os preserva e `docker compose down -v` os apaga. Depois de alterar o código, rode `docker compose up -d --build` de novo.
 
-O contêiner serve o build de produção pelo `wrangler dev`, com D1 local, e só aceita conexões da própria máquina. Ele não substitui a hospedagem: para expô-lo na rede seria preciso um proxy reverso com HTTPS e ajustar a verificação de origem.
+O contêiner serve o build de produção pelo `wrangler dev`, com D1 local, e só aceita conexões da própria máquina. Para publicar na rede, use a seção seguinte.
 
 ```sh
 docker compose exec -e BASE_URL=http://127.0.0.1:8787 -e ADMIN_EMAIL=... -e ADMIN_PASSWORD=... app node scripts/check-api-local.mjs
 ```
+
+## Publicar na VPS
+
+O site roda em `https://black.rklooh.easypanel.host`, atrás do Traefik do Easypanel, que cuida do HTTPS, usando `docker-compose.vps.yml`. O contêiner não publica portas. `PUBLIC_ORIGIN` informa ao sistema o endereço público, usado na verificação de origem e no cookie seguro. Os dados ficam no volume `blackneepay_data`, e as migrações são aplicadas a cada início do contêiner.
+
+Para atualizar, execute `09-DEPLOY-BLACK.bat`, na pasta `Comandos Deploy VPS`. Ele publica o conteúdo da pasta local, inclusive alterações sem commit, e nunca envia arquivos ignorados pelo Git. A versão atual segue no ar durante o build e os testes. Depois, o script faz backup dos dados em `/opt/backups/blackneepay`, guardando os 10 mais recentes, publica e valida o site. Se a nova versão não subir, a anterior volta sozinha, mas o banco não é restaurado automaticamente. Use `-VerifyOnly` para só verificar o site.
 
 ## Executar localmente
 

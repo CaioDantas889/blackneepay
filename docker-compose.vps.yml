@@ -1,0 +1,44 @@
+# VPS deployment behind the Easypanel Traefik, which handles HTTPS. No host port is published.
+name: blackneepay
+
+services:
+  app:
+    build: .
+    container_name: blackneepay
+    init: true
+    restart: unless-stopped
+    environment:
+      PUBLIC_ORIGIN: https://black.rklooh.easypanel.host
+    volumes:
+      - blackneepay_data:/app/.wrangler/state
+    networks:
+      - default
+      - easypanel
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/sales').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      start_interval: 3s
+      retries: 3
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: easypanel
+      traefik.http.middlewares.blackneepay-https.redirectscheme.scheme: https
+      traefik.http.middlewares.blackneepay-https.redirectscheme.permanent: "true"
+      traefik.http.routers.blackneepay-http.entrypoints: http
+      traefik.http.routers.blackneepay-http.rule: Host(`black.rklooh.easypanel.host`)
+      traefik.http.routers.blackneepay-http.middlewares: blackneepay-https
+      traefik.http.routers.blackneepay.entrypoints: https
+      traefik.http.routers.blackneepay.rule: Host(`black.rklooh.easypanel.host`)
+      traefik.http.routers.blackneepay.tls: "true"
+      traefik.http.routers.blackneepay.tls.certresolver: letsencrypt
+      traefik.http.services.blackneepay.loadbalancer.server.port: "8787"
+
+volumes:
+  blackneepay_data:
+    name: blackneepay_data
+
+networks:
+  easypanel:
+    external: true

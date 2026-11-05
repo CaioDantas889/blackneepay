@@ -20,10 +20,14 @@ for(const credentials of [{email,password:'senha-incorreta-123'},{email:'ninguem
 assert.equal((await post('/api/admin/login',{})).status,400);
 assert.equal((await post('/api/admin/login',{email,password},{origin:'https://other.test'})).status,403);
 
-// Tentativas repetidas são bloqueadas, mesmo para e-mails inexistentes.
+// Tentativas repetidas são bloqueadas, mesmo para e-mails inexistentes e com IP falso nos cabeçalhos.
+// O limite é por IP real, e uma rede pode alternar entre até 4 IPs públicos sem falhar aqui.
 const target=`bloqueio-${crypto.randomUUID()}@sites.test`;
-for(let i=0;i<5;i++)assert.equal((await post('/api/admin/login',{email:target,password:'senha-incorreta-123'})).status,401);
-assert.equal((await post('/api/admin/login',{email:target,password:'senha-incorreta-123'})).status,429);
+const attempts=[];
+for(let i=0;i<21&&attempts.at(-1)!==429;i++)attempts.push((await post('/api/admin/login',{email:target,password:'senha-incorreta-123'},{'x-real-ip':`10.9.8.${i}`,'x-forwarded-for':`10.9.8.${i}`})).status);
+assert.ok(attempts.length>=6,`bloqueou cedo demais: ${attempts}`);
+assert.equal(attempts.at(-1),429,`não bloqueou: ${attempts}`);
+assert.ok(attempts.slice(0,-1).every(status=>status===401),`resposta inesperada: ${attempts}`);
 
 // A tela de configuração por código não existe mais.
 assert.equal((await fetch(base+'/admin/setup')).status,404);
