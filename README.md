@@ -60,3 +60,9 @@ O segundo teste exige a prévia local em execução e a senha do administrador l
 O repositório contém código e migrações de estrutura. Dados de vendas, credenciais, dependências e arquivos gerados ficam fora do versionamento.
 
 Detalhes da infraestrutura: [README-SITES.md](README-SITES.md).
+
+## Dashboard para TV
+
+Abra `/dashboard` pelo botão Dashboard no cabeçalho. Exibe os três vendedores com mais máquinas, atualiza a cada 15 segundos e conserva o último placar recebido em caso de falha de rede. Contagens zeradas não ocupam o pódio. Empates mantêm a mesma posição; entre empatados, a ordem alfabética seleciona os três exibidos.
+
+O botão Modo TV solicita tela cheia e Screen Wake Lock, quando suportados. A tela precisa ficar visível e o aparelho conectado; o navegador e o sistema operacional ainda podem suspender o processo. Um aviso informa a indisponibilidade da função. É possível pausar animações, e a preferência do sistema por movimento reduzido é respeitada.
