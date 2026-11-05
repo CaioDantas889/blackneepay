@@ -66,3 +66,13 @@ Detalhes da infraestrutura: [README-SITES.md](README-SITES.md).
 Abra `/dashboard` pelo botão Dashboard no cabeçalho. Exibe os três vendedores com mais máquinas, atualiza a cada 15 segundos e conserva o último placar recebido em caso de falha de rede. Contagens zeradas não ocupam o pódio. Empates mantêm a mesma posição; entre empatados, a ordem alfabética seleciona os três exibidos.
 
 O botão Modo TV solicita tela cheia e Screen Wake Lock, quando suportados. A tela precisa ficar visível e o aparelho conectado; o navegador e o sistema operacional ainda podem suspender o processo. Um aviso informa a indisponibilidade da função. É possível pausar animações, e a preferência do sistema por movimento reduzido é respeitada.
+
+## Criar outro administrador na VPS
+
+Depois de atualizar e reconstruir o contêiner, execute:
+
+```sh
+docker compose exec app node scripts/create-admin.mjs netinho206@gmail.com
+```
+
+O comando usa o banco persistente local do contêiner, cria uma senha temporária aleatória e a exibe uma única vez no terminal. Guarde-a, entre em `/admin/login` e altere-a em `/admin/senha`. A senha não é salva no GitHub. Se o e-mail já existir, a criação falha e preserva a conta atual. Esse comando não envia e-mail.
